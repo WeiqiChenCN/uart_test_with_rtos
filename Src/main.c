@@ -52,7 +52,7 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -65,7 +65,7 @@ osThreadId defaultTaskHandle;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+osThreadId defaultTaskHandle2;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -78,7 +78,7 @@ void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+void StartDefaultTask2(void const * argument);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -137,6 +137,8 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  osThreadDef(defaultTask2, StartDefaultTask2, osPriorityNormal, 0, 128);
+  defaultTaskHandle2 = osThreadCreate(osThread(defaultTask2), NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
@@ -222,8 +224,8 @@ static void MX_USART1_UART_Init(void)
 {
 
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 38400;
-  huart1.Init.WordLength = UART_WORDLENGTH_7B;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
   huart1.Init.Mode = UART_MODE_TX_RX;
@@ -243,8 +245,8 @@ static void MX_USART2_UART_Init(void)
 {
 
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 38400;
-  huart2.Init.WordLength = UART_WORDLENGTH_7B;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
   huart2.Init.Mode = UART_MODE_TX_RX;
@@ -310,7 +312,15 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void StartDefaultTask2(void const * argument)
+{
+	const char str[] = "Hello World 2!";
+  for(;;)
+  {
+		HAL_UART_Transmit( &huart2, (void*)str, strlen(str), 1000 );
+    osDelay(5);
+  }
+}
 /* USER CODE END 4 */
 
 /* StartDefaultTask function */
@@ -318,10 +328,12 @@ void StartDefaultTask(void const * argument)
 {
 
   /* USER CODE BEGIN 5 */
+	const char str[] = "Hello World 1!";
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+		HAL_UART_Transmit( &huart1, (void*)str, strlen(str), 1000 );
+    osDelay(5);
   }
   /* USER CODE END 5 */ 
 }
