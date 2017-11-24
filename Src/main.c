@@ -58,27 +58,26 @@
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
-DMA_HandleTypeDef hdma_usart1_rx;
-DMA_HandleTypeDef hdma_usart1_tx;
 
-osThreadId defaultTaskHandle;
+osThreadId uart1TaskHandle;
+osThreadId uart2TaskHandle;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-osThreadId defaultTaskHandle2;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART1_UART_Init(void);
-void StartDefaultTask(void const * argument);
+void startUart1Task(void const * argument);
+void startUart2Task(void const * argument);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-void StartDefaultTask2(void const * argument);
+
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -110,7 +109,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
 
@@ -131,14 +129,16 @@ int main(void)
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the thread(s) */
-  /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
-  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+  /* definition and creation of uart1Task */
+  osThreadDef(uart1Task, startUart1Task, osPriorityNormal, 0, 128);
+  uart1TaskHandle = osThreadCreate(osThread(uart1Task), NULL);
+
+  /* definition and creation of uart2Task */
+  osThreadDef(uart2Task, startUart2Task, osPriorityIdle, 0, 128);
+  uart2TaskHandle = osThreadCreate(osThread(uart2Task), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  osThreadDef(defaultTask2, StartDefaultTask2, osPriorityNormal, 0, 128);
-  defaultTaskHandle2 = osThreadCreate(osThread(defaultTask2), NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
@@ -261,21 +261,6 @@ static void MX_USART2_UART_Init(void)
 
 }
 
-/** 
-  * Enable DMA controller clock
-  */
-static void MX_DMA_Init(void) 
-{
-  /* DMA controller clock enable */
-  __HAL_RCC_DMA1_CLK_ENABLE();
-
-  /* DMA interrupt init */
-  /* DMA1_Channel2_3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 3, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
-
-}
-
 /** Configure pins as 
         * Analog 
         * Input 
@@ -312,30 +297,38 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void StartDefaultTask2(void const * argument)
-{
-	const char str[] = "Hello World 2!";
-  for(;;)
-  {
-		HAL_UART_Transmit( &huart2, (void*)str, strlen(str), 1000 );
-    osDelay(5);
-  }
-}
+
 /* USER CODE END 4 */
 
-/* StartDefaultTask function */
-void StartDefaultTask(void const * argument)
+/* startUart1Task function */
+void startUart1Task(void const * argument)
 {
 
   /* USER CODE BEGIN 5 */
-	const char str[] = "Hello World 1!";
   /* Infinite loop */
+	const char str[] = "Hello World with uart1!\r\n";
+	UART_HandleTypeDef *huart = &huart1;
   for(;;)
   {
-		HAL_UART_Transmit( &huart1, (void*)str, strlen(str), 1000 );
-    osDelay(5);
+		HAL_UART_Transmit( huart, (void*)str, strlen(str), 1000 );
+    osDelay(100);
   }
   /* USER CODE END 5 */ 
+}
+
+/* startUart2Task function */
+void startUart2Task(void const * argument)
+{
+  /* USER CODE BEGIN startUart2Task */
+  /* Infinite loop */
+	const char str[] = "Hello World with uart2!\r\n";
+	UART_HandleTypeDef *huart = &huart2;
+  for(;;)
+  {
+		HAL_UART_Transmit( huart, (void*)str, strlen(str), 1000 );
+    osDelay(100);
+  }
+  /* USER CODE END startUart2Task */
 }
 
 /**
