@@ -52,7 +52,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <kfifo.h>
 /* USER CODE END Includes */
 
 /* Private define ------------------------------------------------------------*/
@@ -80,7 +80,20 @@
 /* #define USE_FULL_ASSERT    1U */
 
 /* USER CODE BEGIN Private defines */
-
+struct dma_memory {
+	unsigned int	size;
+	unsigned int  status;		//the value should be protected by a mutex.
+	char *				buff;
+};
+struct pipe {
+	struct kfifo fifo;
+	struct dma_memory dma_mem;
+	void (*callback)(void *);
+};
+struct uart_pipes{
+	struct pipe rx;
+	struct pipe tx;
+};
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

@@ -336,7 +336,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_HAL_DRIVER,STM32F070xB</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;../Drivers/STM32F0xx_HAL_Driver/Inc;../Drivers/STM32F0xx_HAL_Driver/Inc/Legacy;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM0;../Drivers/CMSIS/Device/ST/STM32F0xx/Include;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Inc; ../Drivers/STM32F0xx_HAL_Driver/Inc; ../Drivers/STM32F0xx_HAL_Driver/Inc/Legacy; ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM0; ../Drivers/CMSIS/Device/ST/STM32F0xx/Include; ../Middlewares/Third_Party/FreeRTOS/Source/include; ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS; ../Drivers/CMSIS/Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -559,6 +559,11 @@
               <FileName>stm32f0xx_hal_timebase_TIM.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Src/stm32f0xx_hal_timebase_TIM.c</FilePath>
+            </File>
+            <File>
+              <FileName>kfifo.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\kfifo.c</FilePath>
             </File>
           </Files>
         </Group>

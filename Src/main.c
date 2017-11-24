@@ -57,10 +57,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart1;
-UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart4;
+DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart1_tx;
 
 osThreadId uart1TaskHandle;
-osThreadId uart2TaskHandle;
+osThreadId uart4TaskHandle;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -70,10 +72,11 @@ osThreadId uart2TaskHandle;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_USART2_UART_Init(void);
+static void MX_DMA_Init(void);
+static void MX_USART4_UART_Init(void);
 static void MX_USART1_UART_Init(void);
 void startUart1Task(void const * argument);
-void startUart2Task(void const * argument);
+void startUart4Task(void const * argument);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -109,7 +112,8 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USART2_UART_Init();
+  MX_DMA_Init();
+  MX_USART4_UART_Init();
   MX_USART1_UART_Init();
 
   /* USER CODE BEGIN 2 */
@@ -133,9 +137,9 @@ int main(void)
   osThreadDef(uart1Task, startUart1Task, osPriorityNormal, 0, 128);
   uart1TaskHandle = osThreadCreate(osThread(uart1Task), NULL);
 
-  /* definition and creation of uart2Task */
-  osThreadDef(uart2Task, startUart2Task, osPriorityIdle, 0, 128);
-  uart2TaskHandle = osThreadCreate(osThread(uart2Task), NULL);
+  /* definition and creation of uart4Task */
+  osThreadDef(uart4Task, startUart4Task, osPriorityNormal, 0, 128);
+  uart4TaskHandle = osThreadCreate(osThread(uart4Task), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -240,24 +244,39 @@ static void MX_USART1_UART_Init(void)
 
 }
 
-/* USART2 init function */
-static void MX_USART2_UART_Init(void)
+/* USART4 init function */
+static void MX_USART4_UART_Init(void)
 {
 
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
+  huart4.Instance = USART4;
+  huart4.Init.BaudRate = 115200;
+  huart4.Init.WordLength = UART_WORDLENGTH_8B;
+  huart4.Init.StopBits = UART_STOPBITS_1;
+  huart4.Init.Parity = UART_PARITY_NONE;
+  huart4.Init.Mode = UART_MODE_TX_RX;
+  huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart4.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart4.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart4.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart4) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
+
+}
+
+/** 
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void) 
+{
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel2_3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 3, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
 
 }
 
@@ -297,7 +316,12 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void huart1_rx_callback(void *param){
+	
+}
+void huart1_tx_callback(void *param){
+	
+}
 /* USER CODE END 4 */
 
 /* startUart1Task function */
@@ -305,30 +329,63 @@ void startUart1Task(void const * argument)
 {
 
   /* USER CODE BEGIN 5 */
+	struct {
+		struct uart_pipes pipes;
+		UART_HandleTypeDef *huart;
+	}core;
+	void *_p;
+	int ret;
+	char str[64];
+	const char *p2;
+	core.huart = &huart1;
+	core.pipes.rx.dma_mem.size = 32;
+	core.pipes.rx.dma_mem.buff = _p = pvPortMalloc( 32 );
+	core.pipes.rx.callback = huart1_rx_callback;
+	_p = pvPortMalloc( 128 );
+	kfifo_init( &core.pipes.rx.fifo, _p, 128 );
+	
+	core.pipes.tx.dma_mem.size = 32;
+	core.pipes.tx.dma_mem.buff = _p = pvPortMalloc( 32 );
+	core.pipes.tx.callback = huart1_tx_callback;
+	_p = pvPortMalloc( 128 );
+	kfifo_init( &core.pipes.tx.fifo, _p, 128 );
+	
+	
   /* Infinite loop */
-	const char str[] = "Hello World with uart1!\r\n";
-	UART_HandleTypeDef *huart = &huart1;
+	
   for(;;)
   {
-		HAL_UART_Transmit( huart, (void*)str, strlen(str), 1000 );
-    osDelay(100);
+		ret = kfifo_out( &core.pipes.rx.fifo, str, sizeof(str)-1 );
+		if(ret>0){
+			p2 = "Received data:";
+			kfifo_in( &core.pipes.tx.fifo, p2, strlen(p2) );
+			kfifo_in( &core.pipes.tx.fifo, str, ret );
+			p2 = "\r\n";
+			kfifo_in( &core.pipes.tx.fifo, p2, strlen(p2) );
+			HAL_UART_Receive_DMA()
+		}else{
+			//no data in the fifo, I can have some sleep.
+			taskYIELD();
+		}
+		
   }
   /* USER CODE END 5 */ 
 }
 
-/* startUart2Task function */
-void startUart2Task(void const * argument)
+/* startUart4Task function */
+void startUart4Task(void const * argument)
 {
-  /* USER CODE BEGIN startUart2Task */
+  /* USER CODE BEGIN startUart4Task */
+	char buff;
+	UART_HandleTypeDef *huart = &huart4;
   /* Infinite loop */
-	const char str[] = "Hello World with uart2!\r\n";
-	UART_HandleTypeDef *huart = &huart2;
   for(;;)
   {
-		HAL_UART_Transmit( huart, (void*)str, strlen(str), 1000 );
-    osDelay(100);
+		if( HAL_OK==HAL_UART_Receive( huart, (void*)&buff, 1, 3000 ) ){
+			HAL_UART_Transmit( huart, (void*)&buff, 1, 100 );
+		}
   }
-  /* USER CODE END startUart2Task */
+  /* USER CODE END startUart4Task */
 }
 
 /**
